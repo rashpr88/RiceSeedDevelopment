@@ -1,10 +1,10 @@
 import networkx as nwx
-import pandas
+import pandas as pd
 import stringdb
 import math
+import gzip
 
-
-data = pandas.read_table("interactions.txt",' ')
+data = pd.read_table(gzip.open("4530.protein.links.v11.5.txt.gz",mode='rb'))
 
 data = data.drop_duplicates()  # reading interaction file as a dataframe
 proteins = data.protein1.tolist() + data.protein2.tolist()  # list to search for preferred names
