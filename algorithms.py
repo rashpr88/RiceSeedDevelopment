@@ -109,12 +109,7 @@ def predict(net):
 		if nf != 0:
 			score = (nf - ef) ** 2 / ef
 			hishigaki[i] = score
-		for p in li:
-			if p.upper() in known_in:  # majority scoring based on neighbors with known functionality
-				if i in votes:
-					votes[i] = votes[i] + 1  # updating values for already existing key
-				else:
-					votes[i] = 1  # newly creating a key
+		votes[i] = len(known) # mv score
 
 	cand = set()
 
