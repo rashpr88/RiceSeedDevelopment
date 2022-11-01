@@ -47,12 +47,12 @@ def predict(net):
 						deg_p = net.degree(p, "weight")  # weighted degree for p
 						deg_e = net.degree(e, "weight")  # weighted degree for e
 
-						if e in known_in and p not in known_in:
+						if e in known_in and p not in known_in: # if a seed encountered as a neighbor in the middle of the flow
 							score = min(edge_w, (float("inf") * (edge_w / deg_e)))
 
 							entered_fluid[p] = entered_fluid[p] + score
 							sc.append(score)
-							interactions.append([p, e])  # update checked interactions between non-seeds
+							interactions.append([p, e])  # update checked interactions
 							new.append(e)  # update next level neighbors to consider in next time step
 
 						elif e not in known_in:  # if neighbor is not a seed
