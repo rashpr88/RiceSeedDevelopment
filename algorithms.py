@@ -46,7 +46,9 @@ def predict(net):
 						edge_w = net[e][p]["weight"]  # edge weight
 						deg_p = net.degree(p, "weight")  # weighted degree for p
 						deg_e = net.degree(e, "weight")  # weighted degree for e
-						new.append(e)  # update next level neighbors to consider in next time step
+
+						if s ==len(n) - 1 :
+							new.append(e)  # update next level neighbors to consider in next time step
 
 						if s != 0:
 							interactions.append([p, e])  # update checked interactions except for very 1st iteration
@@ -97,8 +99,8 @@ def predict(net):
 			for k in update_e_remain.keys():  # updating remainder in neighbors when all interactions are covered
 				remainder[k] = remainder[k] + sum(update_e_remain[k])
 
-			new = [*set(new)]  # eliminating duplicates
-			if new not in n:  # extending neighbor levels
+			if s == len(n)-1:  # extending neighbor levels
+				new = [*set(new)]  # eliminating duplicates
 				n.append(new)
 
 	print("Entered", entered_fluid)
