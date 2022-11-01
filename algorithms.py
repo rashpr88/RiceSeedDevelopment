@@ -42,44 +42,53 @@ def predict(net):
 				for e in neigh:
 					if (s != 0 and e in n[s - 1]) or ([p, e] in interactions or [e,p] in interactions):  # to drop previously checked interactions
 						continue
-					elif e not in known_in:  # if neighbor is not a seed
-
+					else:
 						edge_w = net[e][p]["weight"]  # edge weight
 						deg_p = net.degree(p, "weight")  # weighted degree for p
 						deg_e = net.degree(e, "weight")  # weighted degree for e
 
-						if p in known_in:  # for direct neighbors of seeds
-							score = min(edge_w, (float("inf") * (edge_w / deg_p)))
+						if e in known_in and p not in known_in:
+							score = min(edge_w, (float("inf") * (edge_w / deg_e)))
 
-							entered_fluid[e] = entered_fluid[e] + score
-							remainder[e] = remainder[e] + score
-
-						elif p not in known_in:  # downhill flow
-							if remainder[p] > remainder[e]:
-								score = min(edge_w, (remainder[p] * (edge_w / deg_p)))
-								sc.append(-score)  # to update remainder in p
-								entered_fluid[e] = entered_fluid[e] + score  # to update entered fluid in p
-								if e in update_e_remain.keys():  # to update remainder in neighbor at the end of possible interactions
-									update_e_remain[e] = update_e_remain[e] + [score]  # when fluid enters neighbor
-								else:
-									update_e_remain[e] = [score]
-
-							elif remainder[e] > remainder[p]:
-
-								score = min(edge_w, (remainder[e] * (edge_w / deg_e)))
-								sc.append(score)
-								entered_fluid[p] = entered_fluid[p] + score
-								if e in update_e_remain.keys():  # when fluid leave from neighbor
-									update_e_remain[e] = update_e_remain[e] + [-score]
-								else:
-									update_e_remain[e] = [-score]
+							entered_fluid[p] = entered_fluid[p] + score
+							sc.append(score)
 							interactions.append([p, e])  # update checked interactions between non-seeds
-						new.append(e)  # update next level neighbors to consider in next time step
+							new.append(e)  # update next level neighbors to consider in next time step
+
+						elif e not in known_in:  # if neighbor is not a seed
+
+							if p in known_in:  # for direct neighbors of seeds
+								score = min(edge_w, (float("inf") * (edge_w / deg_p)))
+
+								entered_fluid[e] = entered_fluid[e] + score
+								remainder[e] = remainder[e] + score
+
+							elif p not in known_in:  # downhill flow
+								if remainder[p] > remainder[e]:
+									score = min(edge_w, (remainder[p] * (edge_w / deg_p)))
+									sc.append(-score)  # to update remainder in p
+									entered_fluid[e] = entered_fluid[e] + score  # to update entered fluid in p
+									if e in update_e_remain.keys():  # to update remainder in neighbor at the end of possible interactions
+										update_e_remain[e] = update_e_remain[e] + [score]  # when fluid enters neighbor
+									else:
+										update_e_remain[e] = [score]
+
+								elif remainder[e] > remainder[p]:
+
+									score = min(edge_w, (remainder[e] * (edge_w / deg_e)))
+									sc.append(score)
+									entered_fluid[p] = entered_fluid[p] + score
+									if e in update_e_remain.keys():  # when fluid leave from neighbor
+										update_e_remain[e] = update_e_remain[e] + [-score]
+									else:
+										update_e_remain[e] = [-score]
+								interactions.append([p, e])  # update checked interactions between non-seeds
+							new.append(e)  # update next level neighbors to consider in next time step
 
 				if p not in known_in:  # updating remainder in p when all interactions are checked
 					remainder[p] = remainder[p] + sum(sc)
 
-			for k in update_e_remain.keys():  # updating remainder in neighbors when all current step interactions are covered
+			for k in update_e_remain.keys():  # updating remainder in neighbors when all interactions are covered
 				remainder[k] = remainder[k] + sum(update_e_remain[k])
 
 			new = [*set(new)]  # eliminating duplicates
