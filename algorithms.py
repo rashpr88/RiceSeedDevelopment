@@ -26,7 +26,6 @@ def predict(net):
 	n = [known_in]  # a nested list of nodes involving in flow
 
 	for i in range(0, d):  # iterations to radius of graph
-		print("i",i)
 
 		for s in range(0, len(n)):  # for nodes reference level to n levels
 			update_e_remain = {}  # to update remaining fluid in neighbors
@@ -42,18 +41,21 @@ def predict(net):
 				for e in neigh:
 					if (s != 0 and e in n[s - 1]) or ([p, e] in interactions or [e,p] in interactions):  # to drop previously checked interactions
 						continue
+
 					else:
 						edge_w = net[e][p]["weight"]  # edge weight
 						deg_p = net.degree(p, "weight")  # weighted degree for p
 						deg_e = net.degree(e, "weight")  # weighted degree for e
+						new.append(e)  # update next level neighbors to consider in next time step
 
-						if e in known_in and p not in known_in: # if a seed encountered as a neighbor in the middle of the flow
+						if s != 0:
+							interactions.append([p, e])  # update checked interactions except for very 1st iteration
+
+						if e in known_in and p not in known_in:
 							score = min(edge_w, (float("inf") * (edge_w / deg_e)))
 
 							entered_fluid[p] = entered_fluid[p] + score
 							sc.append(score)
-							interactions.append([p, e])  # update checked interactions
-							new.append(e)  # update next level neighbors to consider in next time step
 
 						elif e not in known_in:  # if neighbor is not a seed
 
@@ -61,7 +63,13 @@ def predict(net):
 								score = min(edge_w, (float("inf") * (edge_w / deg_p)))
 
 								entered_fluid[e] = entered_fluid[e] + score
-								remainder[e] = remainder[e] + score
+								if s == 0:
+									remainder[e] = remainder[e] + score
+								else:
+									if e in update_e_remain.keys():  # to update remainder in neighbor at the end of possible interactions
+										update_e_remain[e] = update_e_remain[e] + [score]  # when fluid enters neighbor
+									else:
+										update_e_remain[e] = [score]
 
 							elif p not in known_in:  # downhill flow
 								if remainder[p] > remainder[e]:
@@ -82,8 +90,6 @@ def predict(net):
 										update_e_remain[e] = update_e_remain[e] + [-score]
 									else:
 										update_e_remain[e] = [-score]
-								interactions.append([p, e])  # update checked interactions between non-seeds
-							new.append(e)  # update next level neighbors to consider in next time step
 
 				if p not in known_in:  # updating remainder in p when all interactions are checked
 					remainder[p] = remainder[p] + sum(sc)
@@ -95,9 +101,8 @@ def predict(net):
 			if new not in n:  # extending neighbor levels
 				n.append(new)
 
-	print("Entered",entered_fluid)
-	print("Remainder",remainder)
-
+	print("Entered", entered_fluid)
+	print("Remainder", remainder)
 	votes = {}  # to store proteins and corresponding majority scores
 	hishigaki = {}
 
