@@ -13,98 +13,95 @@ def predict(net):
 
 	entered_fluid = {}  # to store fluid entered
 	remainder = {}  # to store remaining fluid
+	update_remainder = {}  # to update remainder in unannotated nodes
 
 	for p in unknown:
 		entered_fluid[p] = 0
 		remainder[p] = 0
+		update_remainder[p] = 0
 
 	known_in = [s for s in seeds if s in nodes]  # known seeds in the network
 	print(len(known_in))
 	d = nwx.radius(net) # half diameter of network
-	print("Number of iterations",d)
+	print("Number of iterations ",d)
 
 	n = [known_in]  # a nested list of nodes involving in flow
 
-	for i in range(0, d):  # iterations to radius of graph
+	add = False  # decide whether to add neighbor for next level fluid flow
 
-		for s in range(0, len(n)):  # for nodes reference level to n levels
-			update_e_remain = {}  # to update remaining fluid in neighbors
+	def update_fscore(e, p):
+
+		global add
+
+		edge_w = net[e][p]["weight"]  # edge weight
+		deg_p = net.degree(p, "weight")  # weighted degree for p
+		deg_e = net.degree(e, "weight")  # weighted degree for e
+
+		if p in known_in:  # for direct neighbors of seeds
+			score = min(edge_w, (float("inf") * (edge_w / deg_p)))
+
+			entered_fluid[e] = entered_fluid[e] + score
+			update_remainder[e] = update_remainder[e] + score
+			add = True
+
+		elif e in known_in:
+			score = min(edge_w, (float("inf") * (edge_w / deg_e)))
+
+			entered_fluid[p] = entered_fluid[p] + score
+			update_remainder[p] = update_remainder[p] + score
+
+
+		elif p not in known_in and e not in known_in:  # downhill flow
+			if remainder[p] > remainder[e]:
+				score = min(edge_w, (remainder[p] * (edge_w / deg_p)))
+				update_remainder[p] = update_remainder[p] - score  # to update remainder in p
+				entered_fluid[e] = entered_fluid[e] + score  # to update entered fluid in p
+				update_remainder[e] = update_remainder[e] + score
+				add = True
+
+
+			elif remainder[e] > remainder[p]:
+
+				score = min(edge_w, (remainder[e] * (edge_w / deg_e)))
+				update_remainder[e] = update_remainder[e] - score
+				entered_fluid[p] = entered_fluid[p] + score
+				update_remainder[p] = update_remainder[p] + score
+
+
+	for i in range(0, d):  # iterations based on graph radius
+		interactions = []  # to track already checked interactions
+
+		for s in range(0, len(n)):  # for each given set of nodes in each level
+
 			new = []  # to store next level neighbors
-
-			interactions = []  # to track already checked interactions
 
 			for p in n[s]:  # for proteins in each level involving the flow
 
 				neigh = net.neighbors(p)  # getting list of neighbors of p protein
-				sc = []  # to update remainder in p when all possible interactions are covered
 
-				for e in neigh:
-					if (s != 0 and e in n[s - 1]) or ([p, e] in interactions or [e,p] in interactions):  # to drop previously checked interactions
+				for e in neigh:  # for each neighbor of p protein
+					add = False
+
+					if (e in n[s - 1] and s != 0) or ([p, e] in interactions or [e, p] in interactions) or (
+							e in known_in and p in known_in):  # discard interactions already tracked in a previous level within same time step
 						continue
+					interactions.append([p, e])  # update checked interactions except for very 1st iteration
 
-					else:
-						edge_w = net[e][p]["weight"]  # edge weight
-						deg_p = net.degree(p, "weight")  # weighted degree for p
-						deg_e = net.degree(e, "weight")  # weighted degree for e
+					update_fscore(e, p)  # to calculate and update functional score
 
-						if s ==len(n) - 1 :
-							new.append(e)  # update next level neighbors to consider in next time step
+					if s == len(n) - 1 and add is True:  # updating n+1th level neighbors at nth level
+						new.append(e)
 
-						if s != 0:
-							interactions.append([p, e])  # update checked interactions except for very 1st iteration
-
-						if e in known_in and p not in known_in:
-							score = min(edge_w, (float("inf") * (edge_w / deg_e)))
-
-							entered_fluid[p] = entered_fluid[p] + score
-							sc.append(score)
-
-						elif e not in known_in:  # if neighbor is not a seed
-
-							if p in known_in:  # for direct neighbors of seeds
-								score = min(edge_w, (float("inf") * (edge_w / deg_p)))
-
-								entered_fluid[e] = entered_fluid[e] + score
-								if s == 0:
-									remainder[e] = remainder[e] + score
-								else:
-									if e in update_e_remain.keys():  # to update remainder in neighbor at the end of possible interactions
-										update_e_remain[e] = update_e_remain[e] + [score]  # when fluid enters neighbor
-									else:
-										update_e_remain[e] = [score]
-
-							elif p not in known_in:  # downhill flow
-								if remainder[p] > remainder[e]:
-									score = min(edge_w, (remainder[p] * (edge_w / deg_p)))
-									sc.append(-score)  # to update remainder in p
-									entered_fluid[e] = entered_fluid[e] + score  # to update entered fluid in p
-									if e in update_e_remain.keys():  # to update remainder in neighbor at the end of possible interactions
-										update_e_remain[e] = update_e_remain[e] + [score]  # when fluid enters neighbor
-									else:
-										update_e_remain[e] = [score]
-
-								elif remainder[e] > remainder[p]:
-
-									score = min(edge_w, (remainder[e] * (edge_w / deg_e)))
-									sc.append(score)
-									entered_fluid[p] = entered_fluid[p] + score
-									if e in update_e_remain.keys():  # when fluid leave from neighbor
-										update_e_remain[e] = update_e_remain[e] + [-score]
-									else:
-										update_e_remain[e] = [-score]
-
-				if p not in known_in:  # updating remainder in p when all interactions are checked
-					remainder[p] = remainder[p] + sum(sc)
-
-			for k in update_e_remain.keys():  # updating remainder in neighbors when all interactions are covered
-				remainder[k] = remainder[k] + sum(update_e_remain[k])
-
-			if s == len(n)-1:  # extending neighbor levels
+			if s == len(n) - 1:  # extending neighbor levels
 				new = [*set(new)]  # eliminating duplicates
 				n.append(new)
 
+		for k in update_remainder.keys():  # updating remainder in neighbors when all interactions under iteration are covered
+			remainder[k] = update_remainder[k]
+
 	print("Entered", entered_fluid)
 	print("Remainder", remainder)
+
 	votes = {}  # to store proteins and corresponding majority scores
 	hishigaki = {}
 
