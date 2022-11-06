@@ -3,6 +3,8 @@ import networkx as nwx
 import numpy as np
 
 
+cand = set()
+
 def predict(net):
 	print("running algorithms")
 	data = pd.read_excel("seeds.xlsx", sheet_name="seeds")  # reading reference file as a dataframe
@@ -22,8 +24,8 @@ def predict(net):
 
 	known_in = [s for s in seeds if s in nodes]  # known seeds in the network
 	print(len(known_in))
-	d = nwx.radius(net) # half diameter of network
-	print("Number of iterations ",d)
+	# d = nwx.radius(net) # half diameter of network
+	# print("Number of iterations ",d)
 
 	n = [known_in]  # a nested list of nodes involving in flow
 
@@ -68,7 +70,7 @@ def predict(net):
 				update_remainder[p] = update_remainder[p] + score
 
 
-	for i in range(0, d):  # iterations based on graph radius
+	for i in range(0, 5):  # iterations based on graph radius
 		interactions = []  # to track already checked interactions
 
 		for s in range(0, len(n)):  # for each given set of nodes in each level
@@ -115,7 +117,7 @@ def predict(net):
 			hishigaki[i] = score
 		votes[i] = len(known) # mv score
 
-	cand = set()
+
 
 	def splitter(n):  # to get common candidates above 80th percentile
 		global cand
@@ -142,7 +144,7 @@ def predict(net):
 			sortd = sorted(i.items(), key=lambda item: item[1], reverse=1)  # sorted dictionary
 			p = sortd[0]  # getting the protein record with highest functional flow score
 
-			splitter(sortd)
+
 			result = "Protein\t\tScore\n"
 
 			for i in sortd:  # writing proteins and scores into a file
@@ -151,6 +153,8 @@ def predict(net):
 			f.write(result)
 			f.close()
 			print("Unknown protein with highest " + name + " : ", str(p[0]) + " - " + str(p[1]))
+
+			splitter(sortd)
 
 	sorting(entered_fluid, "Functional flow score", hishigaki, "Hishigaki score", votes, "Majority voting score")
 

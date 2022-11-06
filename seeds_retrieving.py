@@ -5,7 +5,7 @@ import requests, json
 import numpy as np
 
 
-data = pd.read_excel("ref.xlsx","Sheet2") # reading seeds as a dataframe
+data = pd.read_excel("ref.xlsx","seed_collection") # reading seeds as a dataframe
 data = data.drop_duplicates() # dropping duplicates
 names = ("hypothetical protein","unnamed protein product","hypothetical","protein of unknown")  # unambiguous
 data = data[~data["Protein Name"].isin(names)] # to remove unambiguous proteins in the list
@@ -90,9 +90,29 @@ seeds = string_ids.dropna()[~string_ids.dropna()["Evidences"].str.contains("IEA"
 query2 = set(set(data["Protein Name"]) - set(string_ids["queryItem"]))  # proteins not in string
 not_in_string = pd.DataFrame(data=query2, columns=["Protein Name"])
 
+deps = pd.read_excel("ref.xlsx","DEPs") # reading DEPs as a dataframe
+deps_string_ids = stringdb.get_string_ids(data["Protein Name"],species=4530)  # getting stringdb info
+
+deps_string_ids = deps_string_ids.drop_duplicates(subset="stringId", keep="first")  # eliminating duplicates
+
+seeds_in_deps = set(deps_string_ids["stringId"]).intersection(set(seeds["stringId"]))
+print(len(seeds_in_deps))
+
+for i,row in deps_string_ids.iterrows():  # removing seeds which are DEPs
+	if row["stringId"] in seeds_in_deps:
+		deps_string_ids.drop(i,axis=0,inplace=True)
+
+
+
+deps_string_ids = string_ids.drop_duplicates(subset="stringId", keep="first")  # eliminating duplicates
 with pd.ExcelWriter ("seeds.xlsx") as w:  # writing into separate excel sheets
 	seeds.to_excel(w, sheet_name="seeds")  # seeds with manual annotations
 	computational.to_excel(w, sheet_name="Computational")
 	no_annotations.to_excel(w, sheet_name="No_annotations")
 	not_in_string.to_excel(w, sheet_name="Not_in_string")
+	deps_string_ids.to_excel(w, sheet_name="Sheet1")
+
+
+
+
 
