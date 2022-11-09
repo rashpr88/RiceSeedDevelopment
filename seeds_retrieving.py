@@ -110,7 +110,7 @@ with pd.ExcelWriter ("seeds.xlsx") as w:  # writing into separate excel sheets
 	computational.to_excel(w, sheet_name="Computational")
 	no_annotations.to_excel(w, sheet_name="No_annotations")
 	not_in_string.to_excel(w, sheet_name="Not_in_string")
-	deps_string_ids.to_excel(w, sheet_name="Sheet1")
+	deps_string_ids.to_excel(w, sheet_name="DEPs")
 
 
 
