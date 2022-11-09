@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 
+
 network = nwx.Graph()
 
 proteins = ["s1",'s2']
@@ -16,6 +17,9 @@ network.add_edge("p2","e2",weight=0.4)
 network.add_edge("e1","s2",weight=0.65)
 network.add_edge("s2","e3",weight=0.7)
 network.add_edge("e3","e4",weight=0.8)
+
+
+
 #
 # pos = {"s1":[4,6],"p1":[4,8],"p5":[2,6],"p4":[2,3],"p3":[6,3],"p2":[6,6],"e1":[8,6],"e2":[8,4],"s2":[10,6],"e3":[11,7],"e4":[12,8]}  # positions of nodes in the graph
 # weight = nwx.get_edge_attributes(network,"weight")  # weights in graph
@@ -41,7 +45,7 @@ for p in unknown:
 	update_remainder[p] = 0
 
 known_in = []
-d = nwx.radius(network)
+d = round(nwx.diameter(network)/2)
 print(d,"d")
 
 for i in proteins:
@@ -55,7 +59,7 @@ adde = False
 addp = False
 
 def update_fscore(e,p):
-	print("score", e, p)
+	print("score : ", e,"-", p)
 	global adde
 	global addp
 
@@ -76,6 +80,7 @@ def update_fscore(e,p):
 
 		entered_fluid[p] = entered_fluid[p] + score
 		update_remainder[p] = update_remainder[p] + score
+		adde = True
 
 
 	elif p not in known_in and e not in known_in:  # downhill flow
@@ -94,7 +99,8 @@ def update_fscore(e,p):
 			entered_fluid[p] = entered_fluid[p] + score
 			update_remainder[p] = update_remainder[p] + score
 			addp = True
-	print(update_remainder["p2"])
+
+	print("updating remaining volume in node p2",update_remainder["p2"])
 
 
 
@@ -113,7 +119,7 @@ for i in range(0, d):  # iterations based on graph radius
 				adde = False
 				addp = False
 
-				if (e in n[s-1] and s !=0) or ((p not in n[s-1] and s !=0)and([p,e] in interactions or [e,p] in interactions)) or (e in known_in and p in known_in):  # discard interactions already tracked in a previous level within same time step
+				if (e in n[s-1] and s !=0) or ([p,e] in interactions or [e,p] in interactions) or (e in known_in and p in known_in):  # discard interactions already tracked in a previous level within same time step
 					continue
 				interactions.append([p, e])  # update checked interactions except for very 1st iteration
 
@@ -133,9 +139,9 @@ for i in range(0, d):  # iterations based on graph radius
 
 	for k in update_remainder.keys():  # updating remainder in neighbors when all interactions under iteration are covered
 		remainder[k] = update_remainder[k]
-	print(entered_fluid["p2"])
-	print(entered_fluid["e1"])
-	print(remainder["p2"])
+	print("p2 entered fluid : ",entered_fluid["p2"])
+	print("e12 entered fluid : ",entered_fluid["e1"])
+	print("p2 remaining fluid : ",remainder["p2"])
 
 
 print("Entered",entered_fluid)
@@ -146,7 +152,7 @@ p = sortd[0]  # getting the protein record with highest functional flow score
 result = "Protein\t\tScore\n"
 for i in sortd:  # writing proteins and scores into a file
 	result = result + str(i[0]) + "\t\t" + str(i[1]) + "\n"
-f = open("Functional flow score.txt", "w")
+f = open("Functional flow scorep.txt", "w")
 f.write(result)
 f.close()
 print("Unknown protein with highest Functional flow score: ", str(p[0]) + " - " + str(p[1]))

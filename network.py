@@ -43,9 +43,23 @@ else:
 nwx.write_gml(prune_p, "rice_network.gml")  # writing prepared network to a gml file
 print("no of edges network after pruning", prune_p.number_of_edges())
 
+data = pd.read_excel("seeds.xlsx", sheet_name="seeds")  # reading reference file as a dataframe
+seeds = [m for m in data["preferredName"]]  # list of seeds
+
+nodes = [n for n in prune_p.nodes]  # list of all nodes in the graph
+
+known_in = [s for s in seeds if s in nodes]  # known seeds in the network
+print(len(known_in))
+d = nwx.radius(prune_p) # half diameter of network
+print("Number of iterations ",d)
+
+deps = pd.read_excel("seeds.xlsx", sheet_name="Sheet1")
+diff = [m for m in data["preferredName"]]  # list of DEPs
+
+
 import algorithms
 
-algorithms.predict(prune_p)  # to predict candidates
+algorithms.predict(prune_p,known_in,d,diff)  # to predict candidates
 
 
 
