@@ -156,33 +156,34 @@ def predict (ngraph,seeds,d,diff):
 
             scores = scores.append(row, ignore_index=True)
 
-        # for score normalization
+    # for score normalization
 
-        minrwr = min(scores["RWR"])
-        maxrwr = max(scores["RWR"])
-        minfun = min(scores["Functional flow score"])
-        maxfun = max(scores["Functional flow score"])
-        minmv = min(scores["Majority voting score"])
-        maxmv = max(scores["Majority voting score"])
-        minh = min(scores["Hishigaki score"])
-        maxh = max(scores["Hishigaki score"])
+    minrwr = min(scores["RWR"])
+    maxrwr = max(scores["RWR"])
+    minfun = min(scores["Functional flow score"])
+    maxfun = max(scores["Functional flow score"])
+    minmv = min(scores["Majority voting score"])
+    maxmv = max(scores["Majority voting score"])
+    minh = min(scores["Hishigaki score"])
+    maxh = max(scores["Hishigaki score"])
 
-        for index, row in scores.iterrows():
-            rwr = (row["RWR"] - minrwr) / (maxrwr - minrwr)
-            funsc = (row["Functional flow score"] - minfun) / (maxfun - minfun)
-            mvsc = (row["Majority voting score"] - minmv) / (maxmv - minmv)
-            hsc = (row["Hishigaki score"] - minh) / (maxh - minh)
-            tot = rwr + funsc + mvsc + hsc + row["Validated by DEPs"]
+    for index, row in scores.iterrows():
+        rwr = (row["RWR"] - minrwr) / (maxrwr - minrwr)
+        funsc = (row["Functional flow score"] - minfun) / (maxfun - minfun)
+        mvsc = (row["Majority voting score"] - minmv) / (maxmv - minmv)
+        hsc = (row["Hishigaki score"] - minh) / (maxh - minh)
+        tot = rwr + funsc + mvsc + hsc + row["Validated by DEPs"]
 
-            scores.at[index, "Normalized majority voting score"] = mvsc
-            scores.at[index, "Normalized hishigaki score"] = hsc
-            scores.at[index, "Normalized functional flow score"] = funsc
-            scores.at[index, "Normalized rwr score"] = rwr
-            scores.at[index, "Total Score"] = tot
+        scores.at[index, "Normalized majority voting score"] = mvsc
+        scores.at[index, "Normalized hishigaki score"] = hsc
+        scores.at[index, "Normalized functional flow score"] = funsc
+        scores.at[index, "Normalized rwr score"] = rwr
+        scores.at[index, "Total Score"] = tot
 
-        sorted_scores = scores.sort_values("Total Score", ascending=False)
+    sorted_scores = scores.sort_values("Total Score", ascending=False)
 
-        sorted_scores.to_excel("scores for predictions.xlsx")
+    sorted_scores.to_excel("scores for predictions.xlsx")
+
 
 
 
