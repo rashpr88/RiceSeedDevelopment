@@ -149,16 +149,41 @@ def predict (ngraph,seeds,d,diff):
                 hishigaki[node] = 0
             mv[node] = len(known)  # mv score
 
-            tot = mv[node]+ hishigaki[node] + fun[node] + rwr[node] + present  # total score
+            # tot = mv[node]+ hishigaki[node] + fun[node] + rwr[node] + present
 
-            row = {"Node": node,"Majority voting score":mv[node], "Hishigaki score":hishigaki[node],"Functional flow score":fun[node],"RWR":rwr[node],"Validated by DEPs":present,"Total score":tot}
+            row = {"Node": node, "Majority voting score": mv[node], "Hishigaki score": hishigaki[node],
+                   "Functional flow score": fun[node], "RWR": rwr[node], "Validated by DEPs": present}
 
-            scores = scores.append(row,ignore_index=True)
+            scores = scores.append(row, ignore_index=True)
 
+        # for score normalization
 
-    sorted_scores = scores.sort_values("Total score",ascending=False)  # sorting the dataframe using total score
+        minrwr = min(scores["RWR"])
+        maxrwr = max(scores["RWR"])
+        minfun = min(scores["Functional flow score"])
+        maxfun = max(scores["Functional flow score"])
+        minmv = min(scores["Majority voting score"])
+        maxmv = max(scores["Majority voting score"])
+        minh = min(scores["Hishigaki score"])
+        maxh = max(scores["Hishigaki score"])
 
-    sorted_scores.to_excel("scores for predictions.xlsx")
+        for index, row in scores.iterrows():
+            rwr = (row["RWR"] - minrwr) / (maxrwr - minrwr)
+            funsc = (row["Functional flow score"] - minfun) / (maxfun - minfun)
+            mvsc = (row["Majority voting score"] - minmv) / (maxmv - minmv)
+            hsc = (row["Hishigaki score"] - minh) / (maxh - minh)
+            tot = rwr + funsc + mvsc + hsc + row["Validated by DEPs"]
+
+            scores.at[index, "Normalized majority voting score"] = mvsc
+            scores.at[index, "Normalized hishigaki score"] = hsc
+            scores.at[index, "Normalized functional flow score"] = funsc
+            scores.at[index, "Normalized rwr score"] = rwr
+            scores.at[index, "Total Score"] = tot
+
+        sorted_scores = scores.sort_values("Total Score", ascending=False)
+
+        sorted_scores.to_excel("scores for predictions.xlsx")
+
 
 
 
