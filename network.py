@@ -54,7 +54,7 @@ d = nwx.radius(prune_p) # half diameter of network
 print("Number of iterations ",d)
 
 deps = pd.read_excel("seeds.xlsx", sheet_name="Sheet1")
-diff = [m for m in data["preferredName"]]  # list of DEPs
+diff = [m for m in deps["preferredName"]]  # list of DEPs
 
 
 import algorithms
