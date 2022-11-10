@@ -35,18 +35,19 @@ def functional_flow(graph, seedlist, d):
     deg_matrix = np.zeros((len(graph.nodes), 1))  # array storing node degree
     rem_fluid = np.zeros((len(graph.nodes), 1))  # array storing remaining fluid in each reservoir
     en_fluid = np.zeros((len(graph.nodes), 1))  # array storing entered fluid in each node
+    zeros = sparse.bsr_matrix((len(graph.nodes), len(graph.nodes)))
 
     seeds = seedlist  # seeds in the network
 
     i = 0
     for name in graph.nodes:
-        deg_matrix[i, 0] = graph.degree(name, "weight")  # preparing degree array
+        deg_matrix[i, 0] = 1/(graph.degree(name, "weight") ) # preparing degree array
         if name in seeds:  # updating remaining fluid at t=0 time step
             rem_fluid[i, 0] = float("inf")  # if node is a seed infinite fluid exist
         i += 1
 
     adj_m = nwx.adjacency_matrix(graph)  # getting adjacency matrix of the graph
-    adj_matrix = np.array(adj_m.toarray())  # converting to an array
+    adj_matrix = csr_matrix(adj_m.toarray())  # converting to an array
 
     for i in range(0, d):
 
@@ -57,26 +58,30 @@ def functional_flow(graph, seedlist, d):
         max_rem_fluid = np.maximum(*mesh_rem_fluid)  # picking reservoir with max remainder
 
         if_replaced = np.greater(t_rem_fluid, rem_fluid)  # getting a boolean array for remainder comparison
-        onezero = np.multiply(if_replaced, 1)  # to track whether a replacement happens
+        onezero = csr_matrix(if_replaced * 1)  # to track whether a replacement happens
+
         less = np.less(t_rem_fluid, rem_fluid)  # to distinguish between equal and less
-        less = np.multiply(less, -1)
+        less = csr_matrix(less * -1)
 
-        up = np.add(less, onezero)  # array indicating flow direction
+        up = (less + onezero)  # array indicating flow direction
 
-        current_interactions = np.multiply(up, adj_matrix)  # interactions involving the flow in ith iteration
-        current_interactions[current_interactions == -0] = 0  # omitting zeros with sign
+        current_interactions = csr_matrix.multiply(up, adj_matrix)  # interactions involving the flow in ith iteration
+
+        # current_interactions[current_interactions == -0] = 0  # omitting zeros with sign
+
         # current_interactions[current_interactions == 0] = float("nan")
 
-        positives = current_interactions.copy()
-        positives[positives < 0] = 0  # fluid entering interactions
+        positives = csr_matrix.maximum(current_interactions,zeros)
 
-        negatives = current_interactions.copy()
-        negatives[negatives > 0] = 0  # fluid leaving interactions
+        negatives = csr_matrix.minimum(current_interactions, zeros)
+
 
         n = negatives.copy()
+
         p = positives.copy()
 
         n[n < 0] = 1  # to update deg matrix for fluid entering interactions
+
         p[p > 0] = 1  # to update deg matrix for fluid leaving interactions
 
         res = []
@@ -84,29 +89,31 @@ def functional_flow(graph, seedlist, d):
         def score_calculation(sign1, sign_list1, deg1, clue1, sign2, sign_list2, deg2, clue2):
 
             for s, l, d, t in zip((sign1, sign2), (sign_list1, sign_list2), (deg1, deg2), (clue1, clue2)):
-                s[s == 0] = float("nan")
-                l[l == 0] = float("nan")
 
-                updated_deg_matrix = np.multiply(s, d)  # degree matrix for the interactions under consideration
+                updated_deg_matrix = csr_matrix.multiply(s, d)  # degree matrix for the interactions under consideration
 
-                weight_proportion = np.divide(l, updated_deg_matrix)  # expressing flow capacity as a proportion
+                weight_proportion = csr_matrix.multiply(l, updated_deg_matrix)  # expressing flow capacity as a proportion
+                #
+                #
+                reservoir_cap = csr_matrix.multiply(s,max_rem_fluid)  # updating current fluid volumes at reservoirs
 
-                reservoir_cap = np.multiply(max_rem_fluid, s)  # updating current fluid volumes at reservoirs
-
-                using_remainder_and_weights = np.multiply(reservoir_cap,
-                                                          weight_proportion)  # calculating possible flow volume
-                # print(using_remainder_and_weights)
+                using_remainder_and_weights = csr_matrix.multiply( weight_proportion,reservoir_cap)  # calculating possible flow volume
+                # print("using",using_remainder_and_weights)
 
                 if t == "p":
-                    mat = np.minimum(l,
+                    mat = csr_matrix.minimum(l,
                                      using_remainder_and_weights)  # picking the minimum out of the edge degree and calculated flow volume
+                    # print("po",mat,"--")
+
                 elif t == "n":
 
-                    mat = np.maximum(l,
+                    mat = csr_matrix.maximum(l,
                                      using_remainder_and_weights)  # picking the minimum out of the edge degree and calculated flow volume
+                    # print("m", mat,"---")
 
-                # print("m", mat)
-                mat = np.nan_to_num(mat)  # replacing nan with 0
+
+                # mat = np.nan_to_num(mat)  # replacing nan with 0
+
 
                 res.append(mat)  # adding to result
 
@@ -115,10 +122,10 @@ def functional_flow(graph, seedlist, d):
 
         # print("res",res)
 
-        entered_fluid = np.matrix(res[0]).sum(axis=1)  # entered fluid in ith iteration
+        entered_fluid = csr_matrix.sum(res[0],axis=1)  # entered fluid in ith iteration
         # print("enp", entered_fluid)
 
-        fluid_exit = np.matrix(res[1]).sum(axis=1)  # fluid exit in ith iteration
+        fluid_exit = csr_matrix.sum(res[1],axis=1)  # fluid exit in ith iteration
         # print("ex", fluid_exit)
 
         update_rem = np.add(entered_fluid, fluid_exit)  # remainder due to ith iteration
@@ -126,7 +133,7 @@ def functional_flow(graph, seedlist, d):
         rem_fluid = np.add(rem_fluid, update_rem)  # update total remainder
 
         en_fluid = np.add(en_fluid, entered_fluid)  # update total entered
-        # print("rem", rem_fluid)
+        print("rem", rem_fluid)
 
     n = 0
 
@@ -135,6 +142,7 @@ def functional_flow(graph, seedlist, d):
         n += 1
 
     return graph
+
 
 
 fun ={}
