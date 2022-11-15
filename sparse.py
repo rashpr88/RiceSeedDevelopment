@@ -44,10 +44,11 @@ def functional_flow(graph, seedlist, d):
         deg_matrix[i, 0] = 1/(graph.degree(name, "weight") ) # preparing degree array
         if name in seeds:  # updating remaining fluid at t=0 time step
             rem_fluid[i, 0] = float("inf")  # if node is a seed infinite fluid exist
+            en_fluid[i, 0] = float("inf")  # if node is a seed infinite fluid pumped in
         i += 1
 
-    adj_m = nwx.adjacency_matrix(graph)  # getting adjacency matrix of the graph
-    adj_matrix = csr_matrix(adj_m.toarray())  # converting to an array
+    adj_matrix = nwx.adjacency_matrix(graph)  # getting adjacency matrix of the graph
+    adj_matrix = csr_matrix(adj_matrix.toarray())  # converting to an array
 
     for i in range(0, d):
 
@@ -66,10 +67,6 @@ def functional_flow(graph, seedlist, d):
         up = (less + onezero)  # array indicating flow direction
 
         current_interactions = csr_matrix.multiply(up, adj_matrix)  # interactions involving the flow in ith iteration
-
-        # current_interactions[current_interactions == -0] = 0  # omitting zeros with sign
-
-        # current_interactions[current_interactions == 0] = float("nan")
 
         positives = csr_matrix.maximum(current_interactions,zeros)
 
@@ -136,6 +133,7 @@ def functional_flow(graph, seedlist, d):
         print("rem", rem_fluid)
 
     n = 0
+    print(en_fluid)
 
     for node in graph.nodes:  # assigning func score to each node
         graph.nodes[node]['functional_score'] = en_fluid[n, 0]

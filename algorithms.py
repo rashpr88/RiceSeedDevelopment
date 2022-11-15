@@ -17,10 +17,11 @@ def predict (ngraph,seeds,d,diff):
             deg_matrix[i, 0] = 1 / (graph.degree(name, "weight"))  # preparing degree array
             if name in seeds:  # updating remaining fluid at t=0 time step
                 rem_fluid[i, 0] = float("inf")  # if node is a seed infinite fluid exist
+                en_fluid[i, 0] = float("inf")  # if node is a seed infinite fluid pumped in
             i += 1
 
-        adj_m = nx.adjacency_matrix(graph)  # getting adjacency matrix of the graph
-        adj_matrix = sparse.csr_matrix(adj_m.toarray())  # converting to an array
+        adj_matrix = nx.adjacency_matrix(graph)  # getting adjacency matrix of the graph
+        adj_matrix = sparse.csr_matrix(adj_matrix.toarray())  # converting to a sparse matrix
 
         for i in range(0, d):
 

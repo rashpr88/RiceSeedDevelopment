@@ -4,10 +4,12 @@ import gzip
 import os
 
 networkp = nwx.Graph()  # initiating the network graph
+data = pd.read_excel("seeds.xlsx", sheet_name="seeds")  # reading reference file as a dataframe
+seeds = [m for m in data["preferredName"]]  # list of seeds
 
 if os.path.exists("./rice_network.gml"):  # if the created network already exists
 	print(True)
-	networkp = nwx.read_gml("rice_network.gml")
+	rice_net = nwx.read_gml("rice_network.gml")
 else:
 	map = {}  # to store mapped preferred names
 
@@ -29,37 +31,38 @@ else:
 		if sc >= 0.4:  # to filter interactions based on combined score
 			networkp.add_edge(pr1, pr2, weight=sc)
 
+	print("seeds before",len([s for s in seeds if s in networkp.nodes]))
+	rice_net = nwx.Graph()
 
-print("no of edges network before pruning",networkp.number_of_edges())
-prune_p = nwx.Graph()
+	if not nwx.is_connected(networkp):
+		print("not connected")
+		sub_graphs = max(nwx.connected_components(networkp), key=len)
+		rice_net = networkp.subgraph(sub_graphs)
+	else:
+		rice_net = networkp
 
-if not nwx.is_connected(networkp) :
-	print("not connected")
-	sub_graphs = max(nwx.connected_components(networkp),key=len)
-	prune_p = networkp.subgraph(sub_graphs)
-else:
-	prune_p = networkp
+	for node in rice_net.nodes:  # for seed visualization
+		if node in seeds:
+			rice_net.nodes[node]["seeds"] = 1
+		else:
+			rice_net.nodes[node]["seeds"] = 0
 
-nwx.write_gml(prune_p, "rice_network.gml")  # writing prepared network to a gml file
-print("no of edges network after pruning", prune_p.number_of_edges())
 
-data = pd.read_excel("seeds.xlsx", sheet_name="seeds")  # reading reference file as a dataframe
-seeds = [m for m in data["preferredName"]]  # list of seeds
+	print("seeds after", len([s for s in seeds if s in rice_net.nodes]))
 
-nodes = [n for n in prune_p.nodes]  # list of all nodes in the graph
+	nwx.write_gml(rice_net, "rice_network.gml")  # writing prepared network to a gml file
 
-known_in = [s for s in seeds if s in nodes]  # known seeds in the network
+known_in = [s for s in seeds if s in rice_net.nodes]  # known seeds in the network
 print(len(known_in))
-d = nwx.radius(prune_p) # half diameter of network
+d = nwx.radius(rice_net) # half diameter of network
 print("Number of iterations ",d)
 
 deps = pd.read_excel("seeds.xlsx", sheet_name="Sheet1")
 diff = [m for m in deps["preferredName"]]  # list of DEPs
 
-
 import algorithms
 
-algorithms.predict(prune_p,known_in,d,diff)  # to predict candidates
+algorithms.predict(rice_net,known_in,d,diff)  # to predict candidates
 
 
 
