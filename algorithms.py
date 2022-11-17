@@ -4,18 +4,16 @@ import pandas as pd
 from scipy import sparse
 
 def predict (ngraph,seeds,d,diff):
+
     def functional_flow(graph, seedlist, d):
         deg_matrix = np.zeros((len(graph.nodes), 1))  # array storing node degree
         rem_fluid = np.zeros((len(graph.nodes), 1))  # array storing remaining fluid in each reservoir
         en_fluid = np.zeros((len(graph.nodes), 1))  # array storing entered fluid in each node
-        zeros = sparse.bsr_matrix((len(graph.nodes), len(graph.nodes)))
-
-        seeds = seedlist  # seeds in the network
 
         i = 0
         for name in graph.nodes:
             deg_matrix[i, 0] = 1 / (graph.degree(name, "weight"))  # preparing degree array
-            if name in seeds:  # updating remaining fluid at t=0 time step
+            if name in seedlist:  # updating remaining fluid at t=0 time step
                 rem_fluid[i, 0] = float("inf")  # if node is a seed infinite fluid exist
                 en_fluid[i, 0] = float("inf")  # if node is a seed infinite fluid pumped in
             i += 1
@@ -31,21 +29,15 @@ def predict (ngraph,seeds,d,diff):
 
             max_rem_fluid = np.maximum(*mesh_rem_fluid)  # picking reservoir with max remainder
 
-            if_replaced = np.greater(t_rem_fluid, rem_fluid)  # getting a boolean array for remainder comparison
-            onezero = sparse.csr_matrix(if_replaced * 1)  # to track whether a replacement happens
+            greater = np.greater(t_rem_fluid, rem_fluid)  # getting a boolean array for remainder comparison
+            greater = sparse.csr_matrix(greater * 1)  # to track whether a replacement happens
 
             less = np.less(t_rem_fluid, rem_fluid)  # to distinguish between equal and less
             less = sparse.csr_matrix(less * -1)
 
-            up = (less + onezero)  # array indicating flow direction
+            positives = sparse.csr_matrix.multiply(greater,adj_matrix)
 
-            current_interactions = sparse.csr_matrix.multiply(up,
-                                                       adj_matrix)  # interactions involving the flow in ith iteration
-
-
-            positives = sparse.csr_matrix.maximum(current_interactions, zeros)
-
-            negatives = sparse.csr_matrix.minimum(current_interactions, zeros)
+            negatives = sparse.csr_matrix.multiply(less, adj_matrix)
 
             n = negatives.copy()
 
@@ -72,19 +64,17 @@ def predict (ngraph,seeds,d,diff):
 
                     using_remainder_and_weights = sparse.csr_matrix.multiply(weight_proportion,
                                                                       reservoir_cap)  # calculating possible flow volume
-                    # print("using",using_remainder_and_weights)
 
                     if t == "p":
-                        mat = sparse.csr_matrix.minimum(l,
+                        fluid_v = sparse.csr_matrix.minimum(l,
                                                  using_remainder_and_weights)  # picking the minimum out of the edge degree and calculated flow volume
-                        # print("po",mat,"--")
 
                     elif t == "n":
 
-                        mat = sparse.csr_matrix.maximum(l,
+                        fluid_v= sparse.csr_matrix.maximum(l,
                                                  using_remainder_and_weights)  # picking the minimum out of the edge degree and calculated flow volume
 
-                    res.append(mat)  # adding to result
+                    res.append(fluid_v)  # adding to result
 
             score_calculation(p, positives, deg_matrix.transpose(), "p", n, negatives, deg_matrix,
                               "n")  # calculating functional score
@@ -99,29 +89,22 @@ def predict (ngraph,seeds,d,diff):
 
             en_fluid = np.add(en_fluid, entered_fluid)  # update total entered
 
-        n = 0
+        x = 0
 
         for node in graph.nodes:  # assigning func score to each node
             graph.nodes[node]['functional_score'] = en_fluid[n, 0]
-            n += 1
+            x += 1
 
         return graph
 
 
-    graphf = functional_flow(ngraph, seeds, d) # calculating functional score
-
-    # to score each type of scores separately
-    rwr={}
-    fun = {}
-    mv = {}
-    hishigaki = {}
+    functional_flow(ngraph, seeds, d) # calculating functional score
 
     scores = pd.DataFrame()  # to store all scores of predictions
 
     import network_prop  # calculating rwr
 
-
-    graphr = network_prop.netprop(ngraph,seeds,100,0.1,5)
+    network_prop.netprop(ngraph,seeds,100,0.1,5)
 
     for node in ngraph.nodes:  # for each node
         present = 0
@@ -131,8 +114,8 @@ def predict (ngraph,seeds,d,diff):
             if node in diff:  # if validated by DEPs
                 present += 1
 
-            rwr[node] = graphr.nodes[node]['propagated_weight']
-            fun[node] = graphf.nodes[node]['functional_score']
+            rwr = ngraph.nodes[node]['propagated_weight']
+            fun = ngraph.nodes[node]['functional_score']
 
             li = [m for m in ngraph.neighbors(node)]  # getting list of neighbors
             known = [x for x in li if x in seeds]  # list of seeds as neighbors
@@ -140,15 +123,13 @@ def predict (ngraph,seeds,d,diff):
             nf = len(known)
             if nf != 0:
                 score = (nf - ef) ** 2 / ef
-                hishigaki[node] = score  # hishigaki score
+                hishigaki = score  # hishigaki score
             else:
-                hishigaki[node] = 0
-            mv[node] = len(known)  # mv score
+                hishigaki = 0
+            mv = len(known)  # mv score
 
-            # tot = mv[node]+ hishigaki[node] + fun[node] + rwr[node] + present
-
-            row = {"Node": node, "Majority voting score": mv[node], "Hishigaki score": hishigaki[node],
-                   "Functional flow score": fun[node], "RWR": rwr[node], "Validated by DEPs": present}
+            row = {"Node": node, "Majority voting score": mv, "Hishigaki score": hishigaki,
+                   "Functional flow score": fun, "RWR": rwr, "Validated by DEPs": present}
 
             scores = scores.append(row, ignore_index=True)
 

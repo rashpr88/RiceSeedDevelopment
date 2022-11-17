@@ -57,7 +57,7 @@ print(len(known_in))
 d = nwx.radius(rice_net) # half diameter of network
 print("Number of iterations ",d)
 
-deps = pd.read_excel("seeds.xlsx", sheet_name="Sheet1")
+deps = pd.read_excel("seeds.xlsx", sheet_name="DEPs")
 diff = [m for m in deps["preferredName"]]  # list of DEPs
 
 import algorithms
