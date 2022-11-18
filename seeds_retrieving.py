@@ -76,12 +76,6 @@ for i,r in string_ids.iterrows():  # evidences and biological processes from uni
 			else:
 				string_ids.at[i, 'Evidences'] = np.nan
 				string_ids.at[i, "Biological Processes"] = np.nan
-	# else:
-	# 	string_ids.at[i, 'Uniprot accession'] = np.nan
-	# 	string_ids.at[i, 'Evidences'] = np.nan
-	# 	string_ids.at[i, "Biological Processes"] = np.nan
-
-
 
 no_annotations = string_ids[string_ids["Evidences"].isna()]  # no uniprot evidences
 computational = string_ids.dropna()[string_ids.dropna()["Evidences"].str.contains("IEA")]  # computational annotations
@@ -91,7 +85,7 @@ query2 = set(set(data["Protein Name"]) - set(string_ids["queryItem"]))  # protei
 not_in_string = pd.DataFrame(data=query2, columns=["Protein Name"])
 
 deps = pd.read_excel("ref.xlsx","DEPs") # reading DEPs as a dataframe
-deps_string_ids = stringdb.get_string_ids(data["Protein Name"],species=4530)  # getting stringdb info
+deps_string_ids = stringdb.get_string_ids(deps['Protein Name'],species=4530)  # getting stringdb info
 
 deps_string_ids = deps_string_ids.drop_duplicates(subset="stringId", keep="first")  # eliminating duplicates
 

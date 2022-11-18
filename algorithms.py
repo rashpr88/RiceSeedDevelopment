@@ -53,26 +53,20 @@ def predict (ngraph,seeds,d,diff):
 
                 for s, l, d, t in zip((sign1, sign2), (sign_list1, sign_list2), (deg1, deg2), (clue1, clue2)):
 
-                    updated_deg_matrix = sparse.csr_matrix.multiply(s,
-                                                             d)  # degree matrix for the interactions under consideration
+                    updated_deg_matrix = sparse.csr_matrix.multiply(s,d)  # degree matrix for the interactions under consideration
 
-                    weight_proportion = sparse.csr_matrix.multiply(l,
-                                                            updated_deg_matrix)  # expressing flow capacity as a proportion
+                    weight_proportion = sparse.csr_matrix.multiply(l,updated_deg_matrix)  # expressing flow capacity as a proportion
 
-                    reservoir_cap = sparse.csr_matrix.multiply(s,
-                                                        max_rem_fluid)  # updating current fluid volumes at reservoirs
+                    reservoir_cap = sparse.csr_matrix.multiply(s,max_rem_fluid)  # updating current fluid volumes at reservoirs
 
-                    using_remainder_and_weights = sparse.csr_matrix.multiply(weight_proportion,
-                                                                      reservoir_cap)  # calculating possible flow volume
+                    using_remainder_and_weights = sparse.csr_matrix.multiply(weight_proportion,reservoir_cap)  # calculating possible flow volume
 
                     if t == "p":
-                        fluid_v = sparse.csr_matrix.minimum(l,
-                                                 using_remainder_and_weights)  # picking the minimum out of the edge degree and calculated flow volume
+                        fluid_v = sparse.csr_matrix.minimum(l,using_remainder_and_weights)  # picking the minimum out of the edge degree and calculated flow volume
 
                     elif t == "n":
 
-                        fluid_v= sparse.csr_matrix.maximum(l,
-                                                 using_remainder_and_weights)  # picking the minimum out of the edge degree and calculated flow volume
+                        fluid_v= sparse.csr_matrix.maximum(l,using_remainder_and_weights)  # picking the minimum out of the edge degree and calculated flow volume
 
                     res.append(fluid_v)  # adding to result
 
@@ -149,7 +143,7 @@ def predict (ngraph,seeds,d,diff):
         funsc = (row["Functional flow score"] - minfun) / (maxfun - minfun)
         mvsc = (row["Majority voting score"] - minmv) / (maxmv - minmv)
         hsc = (row["Hishigaki score"] - minh) / (maxh - minh)
-        tot = rwr + funsc + mvsc + hsc + row["Validated by DEPs"]
+        tot = rwr + funsc + mvsc + hsc
 
         scores.at[index, "Normalized majority voting score"] = mvsc
         scores.at[index, "Normalized hishigaki score"] = hsc
