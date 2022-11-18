@@ -93,9 +93,8 @@ seeds_in_deps = set(deps_string_ids["stringId"]).intersection(set(seeds["stringI
 print(len(seeds_in_deps))
 
 for i,row in deps_string_ids.iterrows():  # removing seeds which are DEPs
-	if row["stringId"] in seeds_in_deps:
-		deps_string_ids.drop(i,axis=0,inplace=True)
-
+	if deps_string_ids.at[i,"stringId"] in seeds_in_deps:
+		deps_string_ids.drop(index = i,axis=0,inplace=True)
 
 
 deps_string_ids = string_ids.drop_duplicates(subset="stringId", keep="first")  # eliminating duplicates
