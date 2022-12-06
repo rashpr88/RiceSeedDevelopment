@@ -86,7 +86,7 @@ def predict (ngraph,seeds,d,diff):
         x = 0
 
         for node in graph.nodes:  # assigning func score to each node
-            graph.nodes[node]['functional_score'] = en_fluid[n, 0]
+            graph.nodes[node]['functional_score'] = en_fluid[x,0]
             x += 1
 
         return graph
