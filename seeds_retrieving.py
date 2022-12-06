@@ -88,16 +88,12 @@ deps = pd.read_excel("ref.xlsx","DEPs") # reading DEPs as a dataframe
 deps_string_ids = stringdb.get_string_ids(deps['Protein Name'],species=4530)  # getting stringdb info
 
 deps_string_ids = deps_string_ids.drop_duplicates(subset="stringId", keep="first")  # eliminating duplicates
+diff = [d for d in deps_string_ids["preferredName"]]
 
-seeds_in_deps = set(deps_string_ids["stringId"]).intersection(set(seeds["stringId"]))
-print(len(seeds_in_deps))
+for i, row in seeds.iterrows(): # seeds which are DEPs
+	if seeds.at[i,"preferredName"] in diff:
+		seeds.drop(index = i,axis=0,inplace=True)
 
-for i,row in deps_string_ids.iterrows():  # removing seeds which are DEPs
-	if deps_string_ids.at[i,"stringId"] in seeds_in_deps:
-		deps_string_ids.drop(index = i,axis=0,inplace=True)
-
-
-deps_string_ids = string_ids.drop_duplicates(subset="stringId", keep="first")  # eliminating duplicates
 with pd.ExcelWriter ("seeds.xlsx") as w:  # writing into separate excel sheets
 	seeds.to_excel(w, sheet_name="seeds")  # seeds with manual annotations
 	computational.to_excel(w, sheet_name="Computational")
